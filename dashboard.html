@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timesheet Anomaly Radar Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .filter-group {
+            display: inline-block;
+            margin-right: 20px;
+        }
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+        }
+        .filter-group select, .filter-group button {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .filter-group button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .filter-group button:hover {
+            background: #0056b3;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #e9ecef;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-width: 120px;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .table-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .anomaly-score {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .score-low { background: #d4edda; color: #155724; }
+        .score-medium { background: #fff3cd; color: #856404; }
+        .score-high { background: #f8d7da; color: #721c24; }
+        .decision-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+        .decision-form h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .btn-approve { background: #28a745; color: white; }
+        .btn-escalate { background: #ffc107; color: #212529; }
+        .btn-dismiss { background: #6c757d; color: white; }
+        .btn:hover { opacity: 0.8; }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px;
+        }
+        .deployment-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 Timesheet Anomaly Radar</h1>
+            <p>Monitor and manage timesheet anomalies across your organization</p>
+        </div>
+
+        <div class="deployment-info">
+            <strong>🌐 Live Demo</strong> - This is a deployed version of the Timesheet Anomaly Radar API
+        </div>
+
+        <div class="controls">
+            <div class="filter-group">
+                <label for="teamFilter">Filter by Team:</label>
+                <select id="teamFilter">
+                    <option value="">All Teams</option>
+                    <option value="Support">Support</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Sales">Sales</option>
+                    <option value="Finance">Finance</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="dateFilter">Filter by Date:</label>
+                <input type="date" id="dateFilter">
+            </div>
+            <div class="filter-group">
+                <label>&nbsp;</label>
+                <button onclick="loadAnomalies()">🔍 Load Anomalies</button>
+            </div>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalAnomalies">-</div>
+                <div class="stat-label">Total Anomalies</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="highSeverity">-</div>
+                <div class="stat-label">High Severity</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingReview">-</div>
+                <div class="stat-label">Pending Review</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div id="loading" class="loading" style="display: none;">Loading anomalies...</div>
+            <div id="error" class="error" style="display: none;"></div>
+            <table id="anomaliesTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Team</th>
+                        <th>Date</th>
+                        <th>Anomaly Reason</th>
+                        <th>Score</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="anomaliesTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="decision-form">
+            <h3>📝 Record Decision</h3>
+            <div class="form-group">
+                <label for="recordId">Record ID:</label>
+                <input type="number" id="recordId" readonly>
+            </div>
+            <div class="form-group">
+                <label for="decision">Decision:</label>
+                <select id="decision">
+                    <option value="Approve">✅ Approve</option>
+                    <option value="Escalate">⚠️ Escalate</option>
+                    <option value="Dismiss">❌ Dismiss</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="note">Note:</label>
+                <textarea id="note" placeholder="Add a note explaining your decision..."></textarea>
+            </div>
+            <button class="btn btn-approve" onclick="recordDecision()">💾 Record Decision</button>
+            <button class="btn btn-dismiss" onclick="clearForm()">🗑️ Clear Form</button>
+        </div>
+    </div>
+
+    <script>
+        let anomalies = [];
+        
+        // Auto-detect API URL
+        function getApiUrl() {
+            // If running locally, use localhost
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'http://127.0.0.1:8000';
+            }
+            // Otherwise use the current domain
+            return window.location.origin;
+        }
+
+        async function loadAnomalies() {
+            const loading = document.getElementById('loading');
+            const table = document.getElementById('anomaliesTable');
+            const error = document.getElementById('error');
+            
+            loading.style.display = 'block';
+            table.style.display = 'none';
+            error.style.display = 'none';
+
+            try {
+                const teamFilter = document.getElementById('teamFilter').value;
+                const dateFilter = document.getElementById('dateFilter').value;
+                
+                let url = getApiUrl() + '/api/anomalies';
+                const params = new URLSearchParams();
+                if (teamFilter) params.append('team', teamFilter);
+                if (dateFilter) params.append('date', dateFilter);
+                if (params.toString()) url += '?' + params.toString();
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                anomalies = await response.json();
+                displayAnomalies();
+                updateStats();
+            } catch (err) {
+                error.textContent = `Error loading anomalies: ${err.message}`;
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayAnomalies() {
+            const tbody = document.getElementById('anomaliesTableBody');
+            const table = document.getElementById('anomaliesTable');
+            
+            tbody.innerHTML = '';
+            
+            if (anomalies.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #6c757d;">No anomalies found</td></tr>';
+            } else {
+                anomalies.forEach(anomaly => {
+                    const row = document.createElement('tr');
+                    const scoreClass = getScoreClass(anomaly.anomaly_score);
+                    
+                    row.innerHTML = `
+                        <td><strong>${anomaly.employee_name}</strong></td>
+                        <td>${anomaly.team}</td>
+                        <td>${anomaly.date}</td>
+                        <td>${anomaly.anomaly_reason}</td>
+                        <td><span class="anomaly-score ${scoreClass}">${anomaly.anomaly_score}</span></td>
+                        <td>
+                            <button class="btn btn-approve" onclick="selectAnomaly(${anomaly.record_id})">Review</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+            
+            table.style.display = 'table';
+        }
+
+        function getScoreClass(score) {
+            if (score >= 1.5) return 'score-high';
+            if (score >= 0.8) return 'score-medium';
+            return 'score-low';
+        }
+
+        function updateStats() {
+            document.getElementById('totalAnomalies').textContent = anomalies.length;
+            document.getElementById('highSeverity').textContent = anomalies.filter(a => a.anomaly_score >= 1.5).length;
+            document.getElementById('pendingReview').textContent = anomalies.length; // Simplified for demo
+        }
+
+        function selectAnomaly(recordId) {
+            document.getElementById('recordId').value = recordId;
+            document.getElementById('note').focus();
+        }
+
+        async function recordDecision() {
+            const recordId = document.getElementById('recordId').value;
+            const decision = document.getElementById('decision').value;
+            const note = document.getElementById('note').value;
+
+            if (!recordId) {
+                alert('Please select an anomaly first');
+                return;
+            }
+
+            try {
+                const response = await fetch(getApiUrl() + '/api/decision', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        record_id: parseInt(recordId),
+                        decision: decision,
+                        note: note
+                    })
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                alert(`Decision recorded successfully: ${decision}`);
+                clearForm();
+            } catch (err) {
+                alert(`Error recording decision: ${err.message}`);
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('recordId').value = '';
+            document.getElementById('decision').value = 'Approve';
+            document.getElementById('note').value = '';
+        }
+
+        // Load anomalies on page load
+        window.onload = loadAnomalies;
+    </script>
+</body>
+</html> 
