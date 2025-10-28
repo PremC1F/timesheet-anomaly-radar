@@ -95,7 +95,7 @@ timesheet_anomaly_demo/
           -d '{"record_id": 42, "decision": "Escalate", "note": "Possible duplicate entry"}'
      ```
 
-## Integrating with Rippling App Studio
+## Integrating with Rippling Studio
 
 While this repository cannot connect directly to Rippling’s infrastructure,
 the following steps outline how you could integrate this API into an App
