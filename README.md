@@ -1,4 +1,4 @@
-# Timesheet Anomaly Radar Demo
+# Timesheet Anomaly Radar
 
 This repository demonstrates how a machine‑learning powered feature could be
 integrated into **Rippling’s App Studio** using a simple external API. It
